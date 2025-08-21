@@ -14,6 +14,14 @@ export async function getEmployee(req, res) {
 	return res.json({ employee });
 }
 
+export async function getMyEmployee(req, res) {
+	const userId = req.user?.id;
+	if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+	const employee = await Employee.findOne({ user: userId });
+	if (!employee) return res.status(404).json({ message: 'Employee profile not found' });
+	return res.json({ employee });
+}
+
 export async function createEmployee(req, res) {
 	const {
 		name,

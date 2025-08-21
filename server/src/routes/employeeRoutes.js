@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { verifyJwt, requireRole } from '../middleware/auth.js';
-import { listEmployees, getEmployee, createEmployee, updateEmployee, deleteEmployee } from '../controllers/employeeController.js';
+import { listEmployees, getEmployee, createEmployee, updateEmployee, deleteEmployee, getMyEmployee } from '../controllers/employeeController.js';
 
 const router = Router();
 
 router.use(verifyJwt);
+
+router.get('/me', getMyEmployee);
 
 router.get('/', requireRole('admin'), listEmployees);
 router.get('/:id', requireRole('admin'), getEmployee);
