@@ -11,6 +11,7 @@ const payrollRunSchema = new mongoose.Schema(
 			paye: { type: Number, default: 0 },
 			sha: { type: Number, default: 0 },
 			nssf: { type: Number, default: 0 },
+			housingLevy: { type: Number, default: 0 },
 			otherDeductions: { type: Number, default: 0 },
 			net: { type: Number, default: 0 }
 		}

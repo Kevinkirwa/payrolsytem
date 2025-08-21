@@ -17,7 +17,7 @@ export default function AdminDashboard() {
 
 	const chartData = summary ? [
 		{ name: 'Gross', value: summary.gross },
-		{ name: 'Deductions', value: summary.paye + summary.sha + summary.nssf + summary.otherDeductions },
+		{ name: 'Deductions', value: summary.paye + summary.sha + summary.nssf + (summary.housingLevy||0) + summary.otherDeductions },
 		{ name: 'Net', value: summary.net }
 	] : [];
 
@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 			{summary && (
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div className="p-4 rounded bg-white dark:bg-gray-900 shadow">Total Gross: {summary.gross.toFixed(2)}</div>
-					<div className="p-4 rounded bg-white dark:bg-gray-900 shadow">Total Deductions: {(summary.paye + summary.sha + summary.nssf + summary.otherDeductions).toFixed(2)}</div>
+					<div className="p-4 rounded bg-white dark:bg-gray-900 shadow">Total Deductions: {(summary.paye + summary.sha + summary.nssf + (summary.housingLevy||0) + summary.otherDeductions).toFixed(2)}</div>
 					<div className="p-4 rounded bg-white dark:bg-gray-900 shadow">Net Disbursed: {summary.net.toFixed(2)}</div>
 				</div>
 			)}

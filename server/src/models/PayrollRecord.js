@@ -15,6 +15,7 @@ const payrollRecordSchema = new mongoose.Schema(
 		paye: { type: Number, required: true },
 		sha: { type: Number, required: true },
 		nssf: { type: Number, required: true },
+		housingLevy: { type: Number, required: true },
 		otherDeductions: { type: Number, default: 0 },
 		net: { type: Number, required: true },
 		allowances: { type: [componentSchema], default: [] },

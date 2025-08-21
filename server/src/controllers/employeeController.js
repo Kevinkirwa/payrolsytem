@@ -35,6 +35,7 @@ export async function createEmployee(req, res) {
 		bankAccount = {},
 		mpesaNumber
 	} = req.body;
+	const { writeAudit } = await import('../services/auditService.js');
 
 	if (!name || !email) return res.status(400).json({ message: 'name and email are required' });
 
@@ -65,6 +66,7 @@ export async function createEmployee(req, res) {
 		mpesaNumber
 	});
 
+	await writeAudit(req, { action: 'create', entity: 'employee', entityId: String(employee._id), metadata: { email } });
 	return res.status(201).json({ employee, tempPassword });
 }
 
@@ -79,6 +81,8 @@ export async function updateEmployee(req, res) {
 	}
 	const employee = await Employee.findByIdAndUpdate(id, updates, { new: true });
 	if (!employee) return res.status(404).json({ message: 'Employee not found' });
+	const { writeAudit } = await import('../services/auditService.js');
+	await writeAudit(req, { action: 'update', entity: 'employee', entityId: String(id), metadata: updates });
 	return res.json({ employee });
 }
 
@@ -90,5 +94,7 @@ export async function deleteEmployee(req, res) {
 	if (employee.user) {
 		await User.findByIdAndUpdate(employee.user, { isActive: false });
 	}
+	const { writeAudit } = await import('../services/auditService.js');
+	await writeAudit(req, { action: 'delete', entity: 'employee', entityId: String(id) });
 	return res.json({ message: 'Employee deleted' });
 }

@@ -10,6 +10,7 @@ export async function computeMonthlySummary({ month, year }) {
 		paye: 0,
 		sha: 0,
 		nssf: 0,
+		housingLevy: 0,
 		otherDeductions: 0,
 		net: 0,
 		count: records.length
@@ -19,10 +20,11 @@ export async function computeMonthlySummary({ month, year }) {
 		summary.paye += r.paye;
 		summary.sha += r.sha;
 		summary.nssf += r.nssf;
+		summary.housingLevy += r.housingLevy || 0;
 		summary.otherDeductions += r.otherDeductions;
 		summary.net += r.net;
 	});
-	for (const k of ['gross','paye','sha','nssf','otherDeductions','net']) {
+	for (const k of ['gross','paye','sha','nssf','housingLevy','otherDeductions','net']) {
 		summary[k] = Math.round(summary[k] * 100) / 100;
 	}
 	return { summary, records };

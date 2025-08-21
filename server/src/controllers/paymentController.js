@@ -2,6 +2,7 @@ import PayrollRecord from '../models/PayrollRecord.js';
 import Employee from '../models/Employee.js';
 import TransactionLog from '../models/TransactionLog.js';
 import { simulateBankTransfer, sendMpesaPayment } from '../services/paymentService.js';
+import { writeAudit } from '../services/auditService.js';
 
 async function payRecord(record) {
 	const employee = await Employee.findById(record.employee);
@@ -38,6 +39,7 @@ export async function disburseRun(req, res) {
 		const up = await payRecord(rec);
 		updated.push(up._id);
 	}
+	await writeAudit(req, { action: 'disburse_run', entity: 'payroll', entityId: String(runId), metadata: { count: updated.length } });
 	return res.json({ message: 'Disbursement completed', count: updated.length });
 }
 
@@ -46,5 +48,6 @@ export async function disburseRecord(req, res) {
 	const record = await PayrollRecord.findById(recordId);
 	if (!record) return res.status(404).json({ message: 'Record not found' });
 	await payRecord(record);
+	await writeAudit(req, { action: 'disburse_record', entity: 'payroll', entityId: String(recordId) });
 	return res.json({ message: 'Record disbursed', record });
 }

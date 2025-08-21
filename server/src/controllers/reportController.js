@@ -15,13 +15,14 @@ export async function monthlySummaryCsv(req, res) {
 	month = Number(month) || (new Date().getMonth() + 1);
 	year = Number(year) || new Date().getFullYear();
 	const { summary, records } = await computeMonthlySummary({ month, year });
-	const fields = ['employee','gross','paye','sha','nssf','otherDeductions','net'];
+	const fields = ['employee','gross','paye','sha','nssf','housingLevy','otherDeductions','net'];
 	const data = records.map(r => ({
 		employee: r.employee,
 		gross: r.gross,
 		paye: r.paye,
 		sha: r.sha,
 		nssf: r.nssf,
+		housingLevy: r.housingLevy,
 		otherDeductions: r.otherDeductions,
 		net: r.net
 	}));
@@ -49,6 +50,7 @@ export async function monthlySummaryPdf(req, res) {
 	doc.text(`PAYE: ${summary.paye.toFixed(2)}`);
 	doc.text(`SHA: ${summary.sha.toFixed(2)}`);
 	doc.text(`NSSF: ${summary.nssf.toFixed(2)}`);
+	doc.text(`Housing Levy: ${summary.housingLevy?.toFixed?.(2) || '0.00'}`);
 	doc.text(`Other Deductions: ${summary.otherDeductions.toFixed(2)}`);
 	doc.text(`Net Disbursed: ${summary.net.toFixed(2)}`);
 	doc.end();

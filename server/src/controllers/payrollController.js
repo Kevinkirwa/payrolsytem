@@ -4,6 +4,7 @@ import PayrollRun from '../models/PayrollRun.js';
 import PayrollRecord from '../models/PayrollRecord.js';
 import { computePayrollForEmployee } from '../services/payrollService.js';
 import PDFDocument from 'pdfkit';
+import { writeAudit } from '../services/auditService.js';
 
 export async function runPayrollForAll(req, res) {
 	const { month, year } = req.body;
@@ -24,6 +25,7 @@ export async function runPayrollForAll(req, res) {
 		totals.paye += calc.paye;
 		totals.sha += calc.sha;
 		totals.nssf += calc.nssf;
+		totals.housingLevy = (totals.housingLevy || 0) + calc.housingLevy;
 		totals.otherDeductions += calc.otherDeductions;
 		totals.net += calc.net;
 		records.push({
@@ -39,6 +41,8 @@ export async function runPayrollForAll(req, res) {
 	run.totals = totals;
 	await run.save();
 	await PayrollRecord.insertMany(records);
+
+	await writeAudit(req, { action: 'run', entity: 'payroll', entityId: String(run._id), metadata: { periodMonth, periodYear, count: records.length } });
 
 	return res.status(201).json({ run, totals, count: records.length });
 }
@@ -115,6 +119,7 @@ export async function getPayslipPdf(req, res) {
 	doc.fontSize(12).text(`PAYE: ${record.paye.toFixed(2)}`);
 	doc.text(`SHA: ${record.sha.toFixed(2)}`);
 	doc.text(`NSSF: ${record.nssf.toFixed(2)}`);
+	doc.text(`Housing Levy: ${record.housingLevy.toFixed(2)}`);
 	(record.deductions || []).forEach(d => doc.text(`${d.name}: ${d.amount.toFixed(2)}`));
 	doc.text(`Other Deductions: ${record.otherDeductions.toFixed(2)}`);
 	doc.moveDown();
