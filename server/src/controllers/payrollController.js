@@ -5,27 +5,39 @@ import PayrollRecord from '../models/PayrollRecord.js';
 import { computePayrollForEmployee } from '../services/payrollService.js';
 import PDFDocument from 'pdfkit';
 import { writeAudit } from '../services/auditService.js';
+import TimeEntry from '../models/TimeEntry.js';
+import { getMonthlyLoanDeductions, applyRepaymentForRun } from '../services/loanService.js';
 
-export async function runPayrollForAll(req, res) {
-	const { month, year } = req.body;
+export async function preparePayroll(req, res) {
+	const { month, year, prorationFactor = 1, runType = 'regular' } = req.body;
 	const periodMonth = Number(month) || (new Date().getMonth() + 1);
 	const periodYear = Number(year) || new Date().getFullYear();
 
 	const employees = await Employee.find({ isActive: true });
 	if (employees.length === 0) return res.status(400).json({ message: 'No active employees' });
 
-	const run = await PayrollRun.create({ periodMonth, periodYear, status: 'completed' });
+	const run = await PayrollRun.create({ periodMonth, periodYear, status: 'prepared', prorationFactor: Number(prorationFactor) || 1, runType });
 
-	let totals = { gross: 0, paye: 0, sha: 0, nssf: 0, otherDeductions: 0, net: 0 };
+	let totals = { gross: 0, paye: 0, sha: 0, nssf: 0, housingLevy: 0, otherDeductions: 0, net: 0 };
 	const records = [];
 
 	for (const emp of employees) {
-		const calc = computePayrollForEmployee(emp, { month: periodMonth, year: periodYear });
+		// Overtime for period
+		const start = new Date(periodYear, periodMonth - 1, 1);
+		const end = new Date(periodYear, periodMonth, 0, 23, 59, 59);
+		const timeEntries = await TimeEntry.find({ employee: emp._id, date: { $gte: start, $lte: end } });
+		const overtimeHours = timeEntries.reduce((s, t) => s + (t.overtimeHours || 0), 0);
+		const hourlyRate = (emp.basicSalary || 0) / 173; // common monthly hours benchmark
+		const overtimePay = Math.round(overtimeHours * hourlyRate * 1.5 * 100) / 100;
+		// Loans
+		const { total: loanDue } = await getMonthlyLoanDeductions(emp._id);
+
+		const calc = computePayrollForEmployee(emp, { month: periodMonth, year: periodYear, prorationFactor: Number(prorationFactor) || 1, overtimePay, additionalDeductions: loanDue });
 		totals.gross += calc.gross;
 		totals.paye += calc.paye;
 		totals.sha += calc.sha;
 		totals.nssf += calc.nssf;
-		totals.housingLevy = (totals.housingLevy || 0) + calc.housingLevy;
+		totals.housingLevy += calc.housingLevy;
 		totals.otherDeductions += calc.otherDeductions;
 		totals.net += calc.net;
 		records.push({
@@ -35,16 +47,28 @@ export async function runPayrollForAll(req, res) {
 		});
 	}
 
-	// round totals
 	for (const k of Object.keys(totals)) totals[k] = Math.round(totals[k] * 100) / 100;
-
 	run.totals = totals;
 	await run.save();
 	await PayrollRecord.insertMany(records);
-
-	await writeAudit(req, { action: 'run', entity: 'payroll', entityId: String(run._id), metadata: { periodMonth, periodYear, count: records.length } });
-
+	await writeAudit(req, { action: 'prepare', entity: 'payroll', entityId: String(run._id), metadata: { periodMonth, periodYear, count: records.length } });
 	return res.status(201).json({ run, totals, count: records.length });
+}
+
+export async function approveRun(req, res) {
+	const { runId } = req.params;
+	const run = await PayrollRun.findById(runId);
+	if (!run) return res.status(404).json({ message: 'Run not found' });
+	if (run.status !== 'prepared') return res.status(400).json({ message: 'Only prepared runs can be approved' });
+	run.status = 'approved';
+	await run.save();
+	await writeAudit(req, { action: 'approve', entity: 'payroll', entityId: String(run._id) });
+	return res.json({ message: 'Run approved', run });
+}
+
+export async function runPayrollForAll(req, res) {
+	// Deprecated in favor of preparePayroll; keep as alias to prepare
+	return preparePayroll(req, res);
 }
 
 export async function listRuns(req, res) {
@@ -111,8 +135,9 @@ export async function getPayslipPdf(req, res) {
 	doc.moveDown();
 	// Salary breakdown
 	doc.fontSize(13).text('Earnings');
-	doc.fontSize(12).text(`Basic Salary: ${Number(record.gross - (record.allowances?.reduce((s,a)=>s+a.amount,0)||0)).toFixed(2)}`);
+	doc.fontSize(12).text(`Basic Salary: ${Number(record.gross - (record.allowances?.reduce((s,a)=>s+a.amount,0)||0) - (record.breakdown?.overtimePay||0)).toFixed(2)}`);
 	(record.allowances || []).forEach(a => doc.text(`${a.name}: ${a.amount.toFixed(2)}`));
+	if (record.breakdown?.overtimePay) doc.text(`Overtime: ${Number(record.breakdown.overtimePay).toFixed(2)}`);
 	doc.text(`Gross Pay: ${record.gross.toFixed(2)}`);
 	doc.moveDown();
 	doc.fontSize(13).text('Deductions');

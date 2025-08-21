@@ -40,15 +40,17 @@ function calculateHousingLevy(gross) {
 	return Math.round(gross * HOUSING_LEVY_RATE * 100) / 100;
 }
 
-export function computePayrollForEmployee(employee, { month, year }) {
+export function computePayrollForEmployee(employee, { month, year, prorationFactor = 1, overtimePay = 0, additionalDeductions = 0 }) {
 	const allowancesTotal = employee.allowancesTotal || 0;
-	const gross = Math.round(((employee.basicSalary || 0) + allowancesTotal) * 100) / 100;
+	let grossBase = (employee.basicSalary || 0) + allowancesTotal + (overtimePay || 0);
+	grossBase = grossBase * prorationFactor;
+	const gross = Math.round(grossBase * 100) / 100;
 	const nssf = calculateNssf(gross);
 	const taxable = Math.max(0, gross - nssf);
 	const paye = calculatePayeMonthly(taxable);
 	const sha = calculateSha(gross);
 	const housingLevy = calculateHousingLevy(gross);
-	const otherDeductions = employee.deductionsTotal || 0;
+	const otherDeductions = (employee.deductionsTotal || 0) + (additionalDeductions || 0);
 	const net = Math.round((gross - (paye + sha + nssf + housingLevy + otherDeductions)) * 100) / 100;
 
 	return {
@@ -68,7 +70,10 @@ export function computePayrollForEmployee(employee, { month, year }) {
 			shaRate: SHA_RATE,
 			housingLevyRate: HOUSING_LEVY_RATE,
 			taxable,
-			taxBands: DEFAULT_TAX_BANDS
+			taxBands: DEFAULT_TAX_BANDS,
+			prorationFactor,
+			overtimePay,
+			additionalDeductions
 		}
 	};
 }

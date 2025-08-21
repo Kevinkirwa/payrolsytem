@@ -5,6 +5,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { connectDatabase } from './config/db.js';
 import apiRouter from './routes/index.js';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 
@@ -14,6 +15,9 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
+
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
+app.use('/api/auth/login', authLimiter);
 
 app.use('/api', apiRouter);
 

@@ -31,6 +31,15 @@ export function requireRole(...allowedRoles) {
 	};
 }
 
+export function requirePermission(permission) {
+	return function permissionGuard(req, res, next) {
+		const perms = req.user?.permissions || [];
+		if (req.user?.role === 'admin' && perms.includes('*')) return next();
+		if (!perms.includes(permission)) return res.status(403).json({ message: 'Forbidden' });
+		next();
+	};
+}
+
 export async function allowSelfOrAdmin(req, res, next) {
 	try {
 		if (req.user?.role === 'admin') return next();

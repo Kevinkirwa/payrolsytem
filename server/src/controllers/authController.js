@@ -3,7 +3,7 @@ import User from '../models/User.js';
 
 function signToken(user) {
 	return jwt.sign(
-		{ id: user._id, role: user.role, name: user.name, email: user.email },
+		{ id: user._id, role: user.role, name: user.name, email: user.email, permissions: user.permissions || [] },
 		process.env.JWT_SECRET || 'changeme',
 		{ expiresIn: '7d' }
 	);
@@ -41,7 +41,10 @@ export async function seedAdmin(req, res) {
 	const { email = 'admin@company.com', password = 'Admin@123', name = 'System Admin' } = req.body || {};
 	let admin = await User.findOne({ email });
 	if (!admin) {
-		admin = new User({ email, password, name, role: 'admin' });
+		admin = new User({ email, password, name, role: 'admin', permissions: ['*'] });
+		await admin.save();
+	} else if (!admin.permissions?.includes('*')) {
+		admin.permissions = Array.from(new Set([...(admin.permissions||[]), '*']));
 		await admin.save();
 	}
 	return res.json({ message: 'Admin ready', email, password });
