@@ -41,6 +41,10 @@ async function payRecord(record) {
 	for (const rec of records) {
 		const up = await payRecord(rec);
 		updated.push(up._id);
+		const { applyRepaymentForRun } = await import('../services/loanService.js');
+		await applyRepaymentForRun(rec.employee);
+		const { notifyDisbursement } = await import('../services/notifyService.js');
+		await notifyDisbursement(up);
 	}
 	await writeAudit(req, { action: 'disburse_run', entity: 'payroll', entityId: String(runId), metadata: { count: updated.length } });
 	return res.json({ message: 'Disbursement completed', count: updated.length });

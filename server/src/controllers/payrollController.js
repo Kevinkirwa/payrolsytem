@@ -63,6 +63,8 @@ export async function approveRun(req, res) {
 	run.status = 'approved';
 	await run.save();
 	await writeAudit(req, { action: 'approve', entity: 'payroll', entityId: String(run._id) });
+	const { notifyApproval } = await import('../services/notifyService.js');
+	await notifyApproval(run);
 	return res.json({ message: 'Run approved', run });
 }
 

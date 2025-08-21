@@ -9,6 +9,7 @@ import kraRoutes from './kraRoutes.js';
 import csvRoutes from './csvRoutes.js';
 import glRoutes from './glRoutes.js';
 import timeRoutes from './timeRoutes.js';
+import settingsRoutes from './settingsRoutes.js';
 
 const router = Router();
 
@@ -26,5 +27,7 @@ router.use('/kra', kraRoutes);
 router.use('/csv', csvRoutes);
 router.use('/gl', glRoutes);
 router.use('/time', timeRoutes);
+router.use('/settings', settingsRoutes);
+router.use('/loans', (await import('./loanRoutes.js')).default);
 
 export default router;

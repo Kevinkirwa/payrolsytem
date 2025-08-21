@@ -13,6 +13,7 @@ export default function Nav() {
 						<Link to="/admin/employees">Employees</Link>
 						<Link to="/admin/payroll">Payroll</Link>
 						<Link to="/admin/reports">Reports</Link>
+						<Link to="/admin/settings">Settings</Link>
 					</>
 				)}
 				{user?.role === 'employee' && (

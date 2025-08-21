@@ -7,6 +7,7 @@ import AdminDashboard from './pages/admin/Dashboard.jsx';
 import Employees from './pages/admin/Employees.jsx';
 import Payroll from './pages/admin/Payroll.jsx';
 import Reports from './pages/admin/Reports.jsx';
+import Settings from './pages/admin/Settings.jsx';
 import EmployeeDashboard from './pages/employee/Dashboard.jsx';
 
 function HomeRedirect() {
@@ -35,6 +36,7 @@ export default function App() {
 					<Route path="/admin/employees" element={<ProtectedRoute role="admin"><Shell><Employees /></Shell></ProtectedRoute>} />
 					<Route path="/admin/payroll" element={<ProtectedRoute role="admin"><Shell><Payroll /></Shell></ProtectedRoute>} />
 					<Route path="/admin/reports" element={<ProtectedRoute role="admin"><Shell><Reports /></Shell></ProtectedRoute>} />
+					<Route path="/admin/settings" element={<ProtectedRoute role="admin"><Shell><Settings /></Shell></ProtectedRoute>} />
 					<Route path="/employee" element={<ProtectedRoute role="employee"><Shell><EmployeeDashboard /></Shell></ProtectedRoute>} />
 				</Routes>
 			</BrowserRouter>

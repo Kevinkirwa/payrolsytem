@@ -1,11 +1,10 @@
 import axios from 'axios';
 
-async function getToken() {
-	const base = process.env.KRA_BASE_URL || '';
-	const tokenUrl = process.env.KRA_TOKEN_URL || '';
+async function getToken(tokenUrlOverride) {
+	const tokenUrl = tokenUrlOverride || process.env.KRA_TOKEN_URL || '';
 	const clientId = process.env.KRA_CLIENT_ID || '';
 	const clientSecret = process.env.KRA_CLIENT_SECRET || '';
-	if (!tokenUrl || !clientId || !clientSecret) throw new Error('KRA credentials not configured');
+	if (!tokenUrl || !clientId || !clientSecret) throw new Error('KRA credentials or token URL not configured');
 	const { data } = await axios.post(tokenUrl, { client_id: clientId, client_secret: clientSecret, grant_type: 'client_credentials' });
 	return data.access_token;
 }
@@ -32,4 +31,9 @@ export async function submitP9({ pdfBuffer }) {
 	const token = await getToken();
 	const { data } = await axios.post(url, { file: pdfBuffer.toString('base64') }, { headers: { Authorization: `Bearer ${token}` } });
 	return data;
+}
+
+export async function testKraToken(tokenUrl) {
+	const token = await getToken(tokenUrl);
+	return Boolean(token);
 }
