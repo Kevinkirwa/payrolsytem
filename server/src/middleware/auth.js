@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import Employee from '../models/Employee.js';
 
 export function verifyJwt(req, res, next) {
 	try {
@@ -28,4 +29,18 @@ export function requireRole(...allowedRoles) {
 		}
 		next();
 	};
+}
+
+export async function allowSelfOrAdmin(req, res, next) {
+	try {
+		if (req.user?.role === 'admin') return next();
+		const { employeeId } = req.params;
+		if (!employeeId) return res.status(400).json({ message: 'employeeId param required' });
+		const employee = await Employee.findById(employeeId);
+		if (!employee) return res.status(404).json({ message: 'Employee not found' });
+		if (String(employee.user) !== String(req.user.id)) return res.status(403).json({ message: 'Forbidden' });
+		return next();
+	} catch (e) {
+		return res.status(500).json({ message: 'Access check failed' });
+	}
 }

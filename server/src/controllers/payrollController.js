@@ -3,6 +3,7 @@ import Employee from '../models/Employee.js';
 import PayrollRun from '../models/PayrollRun.js';
 import PayrollRecord from '../models/PayrollRecord.js';
 import { computePayrollForEmployee } from '../services/payrollService.js';
+import PDFDocument from 'pdfkit';
 
 export async function runPayrollForAll(req, res) {
 	const { month, year } = req.body;
@@ -75,4 +76,48 @@ export async function getPayslipJson(req, res) {
 	if (!record) return res.status(404).json({ message: 'Payslip not found for period' });
 	const company = { name: process.env.COMPANY_NAME || 'Company', logoUrl: process.env.COMPANY_LOGO_URL || '' };
 	return res.json({ company, payslip: record });
+}
+
+export async function getPayslipPdf(req, res) {
+	const { employeeId } = req.params;
+	let { month, year } = req.query;
+	month = Number(month) || (new Date().getMonth() + 1);
+	year = Number(year) || new Date().getFullYear();
+	const record = await PayrollRecord.findOne({ employee: employeeId, periodMonth: month, periodYear: year })
+		.populate('employee');
+	if (!record) return res.status(404).json({ message: 'Payslip not found for period' });
+	const companyName = process.env.COMPANY_NAME || 'Company';
+	res.setHeader('Content-Type', 'application/pdf');
+	res.setHeader('Content-Disposition', `inline; filename="payslip-${record.employee.name}-${year}-${month}.pdf"`);
+	const doc = new PDFDocument({ size: 'A4', margin: 50 });
+	doc.pipe(res);
+	// Header
+	doc.fontSize(18).text(companyName, { align: 'left' });
+	if (process.env.COMPANY_LOGO_URL) {
+		// Optionally, download the image is complex; skip external fetch and just show text placeholder
+		doc.fontSize(10).text(' ', { continued: false });
+	}
+	doc.moveDown();
+	doc.fontSize(14).text(`Payslip for ${record.periodYear}-${String(record.periodMonth).padStart(2, '0')}`);
+	doc.moveDown();
+	// Employee details
+	doc.fontSize(12).text(`Employee: ${record.employee.name}`);
+	doc.text(`Email: ${record.employee.email}`);
+	doc.text(`Department: ${record.employee.department || '-'}`);
+	doc.moveDown();
+	// Salary breakdown
+	doc.fontSize(13).text('Earnings');
+	doc.fontSize(12).text(`Basic Salary: ${Number(record.gross - (record.allowances?.reduce((s,a)=>s+a.amount,0)||0)).toFixed(2)}`);
+	(record.allowances || []).forEach(a => doc.text(`${a.name}: ${a.amount.toFixed(2)}`));
+	doc.text(`Gross Pay: ${record.gross.toFixed(2)}`);
+	doc.moveDown();
+	doc.fontSize(13).text('Deductions');
+	doc.fontSize(12).text(`PAYE: ${record.paye.toFixed(2)}`);
+	doc.text(`SHA: ${record.sha.toFixed(2)}`);
+	doc.text(`NSSF: ${record.nssf.toFixed(2)}`);
+	(record.deductions || []).forEach(d => doc.text(`${d.name}: ${d.amount.toFixed(2)}`));
+	doc.text(`Other Deductions: ${record.otherDeductions.toFixed(2)}`);
+	doc.moveDown();
+	doc.fontSize(14).text(`Net Pay: ${record.net.toFixed(2)}`);
+	doc.end();
 }
