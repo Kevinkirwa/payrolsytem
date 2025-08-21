@@ -5,6 +5,10 @@ import payrollRoutes from './payrollRoutes.js';
 import payslipRoutes from './payslipRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import reportRoutes from './reportRoutes.js';
+import kraRoutes from './kraRoutes.js';
+import csvRoutes from './csvRoutes.js';
+import glRoutes from './glRoutes.js';
+import timeRoutes from './timeRoutes.js';
 
 const router = Router();
 
@@ -18,5 +22,9 @@ router.use('/payroll', payrollRoutes);
 router.use('/payslip', payslipRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/reports', reportRoutes);
+router.use('/kra', kraRoutes);
+router.use('/csv', csvRoutes);
+router.use('/gl', glRoutes);
+router.use('/time', timeRoutes);
 
 export default router;

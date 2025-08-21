@@ -34,6 +34,7 @@ const employeeSchema = new mongoose.Schema(
 		phone: { type: String },
 		jobTitle: { type: String },
 		department: { type: String },
+		kraPin: { type: String },
 		basicSalary: { type: Number, required: true, default: 0 },
 		allowancesTotal: { type: Number, default: 0 },
 		allowances: { type: [allowanceSchema], default: [] },

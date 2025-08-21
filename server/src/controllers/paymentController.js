@@ -30,8 +30,11 @@ async function payRecord(record) {
 	return record;
 }
 
-export async function disburseRun(req, res) {
+	export async function disburseRun(req, res) {
 	const { runId } = req.params;
+	const run = await (await import('../models/PayrollRun.js')).default.findById(runId);
+	if (!run) return res.status(404).json({ message: 'Run not found' });
+	if (run.status !== 'approved') return res.status(400).json({ message: 'Run must be approved before disbursement' });
 	const records = await PayrollRecord.find({ run: runId, 'payment.status': { $ne: 'paid' } });
 	if (records.length === 0) return res.json({ message: 'No payable records' });
 	const updated = [];
